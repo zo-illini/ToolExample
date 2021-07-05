@@ -114,21 +114,21 @@ void FToolExampleEditor::AddMenuExtension(const FMenuExtensionDelegate &extensio
 void FToolExampleEditor::MakePulldownMenu(FMenuBarBuilder &menuBuilder)
 {
 	menuBuilder.AddPullDownMenu(
-		FText::FromString("Example"),
-		FText::FromString("Open the Example menu"),
+		FText::FromString("CurveTool"),
+		FText::FromString("Open the CurveTool menu"),
 		FNewMenuDelegate::CreateRaw(this, &FToolExampleEditor::FillPulldownMenu),
-		"Example",
-		FName(TEXT("ExampleMenu"))
+		"CurveTool",
+		FName(TEXT("CurveToolMenu"))
 	);
 }
 
 void FToolExampleEditor::FillPulldownMenu(FMenuBuilder &menuBuilder)
 {
-	menuBuilder.BeginSection("ExampleSection", FText::FromString("Section 1"));
+	menuBuilder.BeginSection("CurveToolSection", FText::FromString("Section 1"));
 	menuBuilder.AddMenuSeparator(FName("Section_1"));
 	menuBuilder.EndSection();
 
-	menuBuilder.BeginSection("ExampleSection", FText::FromString("Section 2"));
+	/*menuBuilder.BeginSection("ExampleSection", FText::FromString("Section 2"));
 	menuBuilder.AddMenuSeparator(FName("Section_2"));
-	menuBuilder.EndSection();
+	menuBuilder.EndSection();*/
 }

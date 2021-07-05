@@ -1,6 +1,9 @@
 #pragma once
 
 #include "ToolExampleEditor/IExampleModuleInterface.h"
+#include "Animation/AnimSequence.h"
+#include "AssetRegistryModule.h"
+#include "PropertyEditing.h"
 
 class MenuTool : public IExampleModuleListenerInterface, public TSharedFromThis<MenuTool>
 {
@@ -13,10 +16,16 @@ public:
 	void MakeMenuEntry(FMenuBuilder &menuBuilder);
 	void MakeSubMenu(FMenuBuilder &menuBuilder);
 
+	UAnimSequence * AnimSequence;
+
 
 protected:
 	TSharedPtr<FUICommandList> CommandList;
+	TSharedPtr<SWidget> SelectAnimSequenceWidgetPtr;
+	TSharedPtr<SComboButton> SelectAnimSequenceButtonPtr;
+	TSharedPtr<SWidget> AnimSequencePicker;
 
+	
 	void MapCommands();
 
 	//************************
@@ -25,9 +34,18 @@ protected:
 	void MenuCommand2();
 	void MenuCommand3();
 
-	FName TagToAdd;
+	FReply OnAnimButtonClicked();
+	TSharedRef<SWidget> OnGetAnimMenu();
+	void OnAnimAssetSelected(const FAssetData& AssetData);
 
-	FReply AddTag();
-	FText GetTagToAddText() const;
-	void OnTagToAddTextCommited(const FText& InText, ETextCommit::Type CommitInfo);
+	FName BoneName;
+
+	TArray<FTransform> BoneTransform;
+
+	FReply ExtractBoneCurve();
+	FText GetBoneName() const;
+	void OnBoneNameCommitted(const FText& InText, ETextCommit::Type CommitInfo);
+
+	bool FillBoneTransform();
+	void FillCurveVector();
 };
