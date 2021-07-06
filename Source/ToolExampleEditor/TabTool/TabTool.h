@@ -18,6 +18,12 @@ public:
 protected:
 	UAnimSequence * AnimSequence;
 
+	TArray<FVector> TransCurve;
+    TArray<FVector> RotCurve;
+    TArray<FVector> ScaleCurve;
+	
+    FText TransScale;
+    FText RotScale;
 	
 	TSharedPtr<SWidget> SelectAnimSequenceWidgetPtr;
 	TSharedPtr<SComboButton> SelectAnimSequenceButtonPtr;
@@ -36,7 +42,13 @@ protected:
 	FReply ExtractBoneCurve();
 	FText GetBoneName() const;
 	void OnBoneNameCommitted(const FText& InText, ETextCommit::Type CommitInfo);
+	FText GetTransScale() const;
+	void OnTransScaleCommitted(const FText& InText, ETextCommit::Type CommitInfo);
+	FText GetRotScale() const;
+	void OnRotScaleCommitted(const FText& InText, ETextCommit::Type CommitInfo);
 
-	bool FillBoneTransform();
+//	bool FillBoneTransform();
 	void FillCurveVector();
+	void SaveCurve();
+
 };

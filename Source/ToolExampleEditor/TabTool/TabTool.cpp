@@ -27,6 +27,10 @@ void TabTool::Initialize()
 	TabName = "TabTool";
 	TabDisplayName = FText::FromString("Open CurveTool Tab");
 	ToolTipText = FText::FromString("CurveTool Window");
+
+	TransScale = FText::FromString("1");
+	RotScale = FText::FromString("1");
+	AnimSequence = nullptr;
 }
 
 TSharedRef<SDockTab> TabTool::SpawnTab(const FSpawnTabArgs& TabSpawnArgs)
@@ -55,6 +59,54 @@ TSharedRef<SDockTab> TabTool::SpawnTab(const FSpawnTabArgs& TabSpawnArgs)
 	SelectAnimSequenceWidgetPtr = SelectAnimSequenceWidget;
 	SelectAnimSequenceButtonPtr = SelectAnimSequenceButton;
 
+	TSharedRef<SWidget> ScalingFactorWidget =
+        SNew(SVerticalBox)
+        + SVerticalBox::Slot()
+        [
+			
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            .VAlign(VAlign_Center)
+            [
+                SNew(STextBlock)
+                .Text(FText::FromString("Translation Scale"))
+            ]
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            .Padding(5, 0, 0, 0)
+            .VAlign(VAlign_Center)
+            [
+                SNew(SEditableTextBox)
+                .MinDesiredWidth(50)
+                .Text(this, &TabTool::GetTransScale)
+                .OnTextCommitted(this, &TabTool::OnTransScaleCommitted)
+            ]
+        ]
+    .Padding(0, 0, 0, 5)
+        + SVerticalBox::Slot()
+        [
+				
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            .VAlign(VAlign_Center)
+            [
+                SNew(STextBlock)
+                .Text(FText::FromString("Rotation Scale"))
+            ]
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            .Padding(5, 0, 0, 0)
+            .VAlign(VAlign_Center)
+            [
+                SNew(SEditableTextBox)
+                .MinDesiredWidth(50)
+                .Text(this, &TabTool::GetRotScale)
+                .OnTextCommitted(this, &TabTool::OnRotScaleCommitted)
+            ]
+        ];
+	
 	// Enter and Display bone name, Button for extracting curve
 	
 	TSharedRef<SWidget> BoneNameWidget =
@@ -129,6 +181,11 @@ TSharedRef<SDockTab> TabTool::SpawnTab(const FSpawnTabArgs& TabSpawnArgs)
           	    BoneNameWidget
           	]
           	+SVerticalBox::Slot()
+            .MaxHeight(64)
+            [
+                ScalingFactorWidget
+            ]
+          	+SVerticalBox::Slot()
           	.MaxHeight(32)
           	[
           		ExtractCurveButton
@@ -181,8 +238,8 @@ FReply TabTool::OnAnimButtonClicked()
 
 FReply TabTool::ExtractBoneCurve()
 {
-	if (AnimSequence && FillBoneTransform())
-		FillCurveVector();
+	FillCurveVector();
+	SaveCurve();
 	return FReply::Handled();
 }
 
@@ -191,13 +248,36 @@ FText TabTool::GetBoneName() const
 	return FText::FromName(BoneName);
 }
 
+
+FText TabTool::GetTransScale() const
+{
+	return TransScale;
+}
+
+FText TabTool::GetRotScale() const
+{
+	return RotScale;
+}
+
 void TabTool::OnBoneNameCommitted(const FText& InText, ETextCommit::Type CommitInfo)
 {
 	const FString str = InText.ToString();
 	BoneName = FName(*str.TrimStartAndEnd());
 }
 
-bool TabTool::FillBoneTransform() 
+void TabTool::OnTransScaleCommitted(const FText& InText, ETextCommit::Type CommitInfo)
+{
+	const FString str = InText.ToString();
+	TransScale = InText;
+}
+
+void TabTool::OnRotScaleCommitted(const FText& InText, ETextCommit::Type CommitInfo)
+{
+	const FString str = InText.ToString();
+	RotScale = InText;
+}
+
+/*bool TabTool::FillBoneTransform() 
 {	
 	BoneTransform.Empty();
 	const float DeltaTime = AnimSequence->GetPlayLength() / AnimSequence->GetNumberOfFrames();
@@ -211,41 +291,72 @@ bool TabTool::FillBoneTransform()
 		BoneTransform.Add(Out);
 	}
 	return true;
-}
+}*/
+
 
 void TabTool::FillCurveVector() 
 {
+	if(!AnimSequence)
+		return;
+	
+	TransCurve.Reset();
+	RotCurve.Reset();
+	ScaleCurve.Reset();
+	
+	const float TScale = FCString::Atof(*TransScale.ToString());
+	const float RScale = FCString::Atof(*RotScale.ToString());
+	const float DeltaTime = AnimSequence->GetPlayLength() / AnimSequence->GetNumberOfFrames();
+	const int BoneIndex = AnimSequence->GetSkeleton()->GetReferenceSkeleton().FindBoneIndex(BoneName);
+
+	if (BoneIndex != INDEX_NONE)
+	{
+		for (int i = 0; i < AnimSequence->GetNumberOfFrames(); i++)
+		{
+			FTransform Out;
+			AnimSequence->GetBoneTransform(Out, BoneIndex , i * DeltaTime, true);
+			TransCurve.Add(Out.GetLocation() * TScale);
+			RotCurve.Add(Out.GetRotation().Euler() * RScale);
+			ScaleCurve.Add(Out.GetScale3D());
+		}
+	}
+}
+
+
+void TabTool::SaveCurve()
+{
+
+	if (TransCurve.Num() == 0 ||
+		RotCurve.Num() == 0 ||
+		ScaleCurve.Num() == 0)
+		return;
+	
 	FString PackageName = TEXT("/Game/Curve/");
-	FString BoneID = BoneName.ToString();
-	PackageName += BoneID;
+	const FString AnimName = AnimSequence->GetName();
+	const FString BoneID = BoneName.ToString();
+	const FString CurveName = AnimName + "_" + BoneID;
+	PackageName += AnimName + "/" + BoneID;
 	UPackage* Package = CreatePackage(*PackageName);
 	Package->FullyLoad();
 
-	UCurveVector* CurveVectorTrans = NewObject<UCurveVector>(Package, *(BoneID + TEXT("_Trans")), RF_Public | RF_Standalone | RF_MarkAsRootSet);
-	UCurveVector* CurveVectorRot = NewObject<UCurveVector>(Package, *(BoneID + TEXT("_Rot")), RF_Public | RF_Standalone | RF_MarkAsRootSet);
-	UCurveVector* CurveVectorScale = NewObject<UCurveVector>(Package, *(BoneID + TEXT("_Scale")), RF_Public | RF_Standalone | RF_MarkAsRootSet);
-
-	//Package->AddToRoot();
-	//CurveVectorTrans->AddToRoot();
-	//CurveVectorRot->AddToRoot();
-	//CurveVectorScale->AddToRoot();
+	UCurveVector* CurveVectorTrans = NewObject<UCurveVector>(Package, *(CurveName + TEXT("_Trans")), RF_Public | RF_Standalone | RF_MarkAsRootSet);
+	UCurveVector* CurveVectorRot = NewObject<UCurveVector>(Package, *(CurveName + TEXT("_Rot")), RF_Public | RF_Standalone | RF_MarkAsRootSet);
+	UCurveVector* CurveVectorScale = NewObject<UCurveVector>(Package, *(CurveName + TEXT("_Scale")), RF_Public | RF_Standalone | RF_MarkAsRootSet);
 
 
 	float DeltaTime = AnimSequence->GetPlayLength() / AnimSequence->GetNumberOfFrames();
-	FVector Val;
-	for (int i = 0; i < BoneTransform.Num(); i++)
+	for (int i = 0; i < AnimSequence->GetNumberOfFrames(); i++)
 	{
-		Val = BoneTransform[i].GetLocation();
+		FVector Val = TransCurve[i];
 		CurveVectorTrans->FloatCurves[0].AddKey(i * DeltaTime, Val[0]);
 		CurveVectorTrans->FloatCurves[1].AddKey(i * DeltaTime, Val[1]);
 		CurveVectorTrans->FloatCurves[2].AddKey(i * DeltaTime, Val[2]);
 
-		Val = BoneTransform[i].GetRotation().Euler();
+		Val = RotCurve[i];
 		CurveVectorRot->FloatCurves[0].AddKey(i * DeltaTime, Val[0]);
 		CurveVectorRot->FloatCurves[1].AddKey(i * DeltaTime, Val[1]);
 		CurveVectorRot->FloatCurves[2].AddKey(i * DeltaTime, Val[2]);
 
-		Val = BoneTransform[i].GetScale3D();
+		Val = ScaleCurve[i];
 		CurveVectorScale->FloatCurves[0].AddKey(i * DeltaTime, Val[0]);
 		CurveVectorScale->FloatCurves[1].AddKey(i * DeltaTime, Val[1]);
 		CurveVectorScale->FloatCurves[2].AddKey(i * DeltaTime, Val[2]);
@@ -261,5 +372,4 @@ void TabTool::FillCurveVector()
 	UPackage::SavePackage(Package, CurveVectorRot, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone, *PackageFileName);
 	UPackage::SavePackage(Package, CurveVectorScale, EObjectFlags::RF_Public | EObjectFlags::RF_Standalone, *PackageFileName);
 
-	
 }
