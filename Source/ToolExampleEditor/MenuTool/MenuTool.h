@@ -2,6 +2,7 @@
 
 #include "ToolExampleEditor/IExampleModuleInterface.h"
 #include "Animation/AnimSequence.h"
+#include "AssetThumbnail.h"
 #include "AssetRegistryModule.h"
 #include "PropertyEditing.h"
 
@@ -23,6 +24,8 @@ protected:
 	TSharedPtr<FUICommandList> CommandList;
 	TSharedPtr<SWidget> SelectAnimSequenceWidgetPtr;
 	TSharedPtr<SComboButton> SelectAnimSequenceButtonPtr;
+	TSharedPtr<FAssetThumbnail> AnimThumbnailPtr;
+	TSharedPtr<FAssetThumbnailPool> AnimThumbnailPoolPtr;
 	TSharedPtr<SWidget> AnimSequencePicker;
 
 	

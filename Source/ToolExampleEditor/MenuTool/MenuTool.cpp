@@ -1,5 +1,8 @@
-#include "ToolExampleEditor/ToolExampleEditor.h"
 #include "MenuTool.h"
+#include "ToolExampleEditor/ToolExampleEditor.h"
+
+#include <Asset.h>
+
 
 
 #include "PropertyCustomizationHelpers.h"
@@ -98,10 +101,12 @@ void MenuTool::MakeMenuEntry(FMenuBuilder &menuBuilder)
         [
             SelectAnimSequenceButton
         ];
-	SelectAnimSequenceWidgetPtr = SelectAnimSequenceWidget;
-	SelectAnimSequenceButtonPtr = SelectAnimSequenceButton;
+
+	AnimThumbnailPoolPtr = MakeShared<FAssetThumbnailPool>(10, true);
 	
-	menuBuilder.AddWidget(SelectAnimSequenceWidget, FText::FromString(""));
+	AnimThumbnailPtr = MakeShareable(new FAssetThumbnail(FAssetData(), 128, 128, AnimThumbnailPoolPtr));
+	
+	
 	TSharedRef<SWidget> BoneNameWidget =
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -123,14 +128,35 @@ void MenuTool::MakeMenuEntry(FMenuBuilder &menuBuilder)
 			.OnClicked(this, &MenuTool::ExtractBoneCurve)
 		];
 
+	TSharedRef<SWidget> AnimThumbnailBox =
+		SNew(SBox)
+		.WidthOverride(48)
+		.HeightOverride(128)
+		[
+			AnimThumbnailPtr->MakeThumbnailWidget()
+		];
+
+
+	SelectAnimSequenceWidgetPtr = SelectAnimSequenceWidget;
+	SelectAnimSequenceButtonPtr = SelectAnimSequenceButton;
+
+
+	menuBuilder.AddWidget(SelectAnimSequenceWidget, FText::FromString(""));
 	menuBuilder.AddWidget(BoneNameWidget, FText::FromString(""));
-	
+	menuBuilder.AddWidget(AnimThumbnailBox, FText::FromString(""));
+	//menuBuilder.AddWidget(AnimThumbnail, FText::FromString(""));
+
+
+
 }
 
 void MenuTool::OnAnimAssetSelected(const FAssetData& AssetData)
 {
 	AnimSequence = Cast<UAnimSequence>(AssetData.GetAsset());
 	SelectAnimSequenceButtonPtr->SetIsOpen(false);
+	AnimThumbnailPtr->SetAsset(AssetData);
+	AnimThumbnailPtr->RefreshThumbnail();
+	//StaticCastSharedPtr<FAssetThumbnail, SWidget, ESPMode::Fast>(AnimThumbnailPtr)->SetAsset(AssetData);
 }
 
 TSharedRef<SWidget> MenuTool::OnGetAnimMenu()

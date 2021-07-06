@@ -128,7 +128,7 @@ void FToolExampleEditor::FillPulldownMenu(FMenuBuilder &menuBuilder)
 	menuBuilder.AddMenuSeparator(FName("Section_1"));
 	menuBuilder.EndSection();
 
-	/*menuBuilder.BeginSection("ExampleSection", FText::FromString("Section 2"));
+	menuBuilder.BeginSection("ExampleSection", FText::FromString("Section 2"));
 	menuBuilder.AddMenuSeparator(FName("Section_2"));
-	menuBuilder.EndSection();*/
+	menuBuilder.EndSection();
 }
